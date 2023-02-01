@@ -31,11 +31,14 @@ public class UserMealsUtil {
     }
 
     public static List<UserMealWithExcess> filteredByStreams(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
-        Map<LocalDate,Integer> agg = meals.stream()
-                .collect(Collectors.groupingBy(foo -> foo.getDateTime().toLocalDate(),
+        Map<LocalDate,Integer> summCaloriesByDays = meals.stream()
+                .collect(Collectors.groupingBy(uM -> uM.getDateTime().toLocalDate(),
                         Collectors.summingInt(UserMeal::getCalories)));
 
-        return meals.stream().filter(foo->isBetweenHalfOpen(foo.getDateTime().toLocalTime(),startTime,endTime)).map(foo-> agg.get(foo.getDateTime().toLocalDate())<caloriesPerDay? new UserMealWithExcess(foo.getDateTime(),foo.getDescription(),foo.getCalories(),true):new UserMealWithExcess(foo.getDateTime(),foo.getDescription(),foo.getCalories(),false)).toList();
+        return meals.stream()
+                .filter(foo->isBetweenHalfOpen(foo.getDateTime().toLocalTime(),startTime,endTime))
+                .map(uM -> new UserMealWithExcess(uM.getDateTime(),uM.getDescription(),uM.getCalories(),summCaloriesByDays.get(uM.getDateTime().toLocalDate())>caloriesPerDay))
+                .collect(Collectors.toList());
     }
 
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
@@ -61,17 +64,9 @@ public class UserMealsUtil {
                     cur_sum = cur_sum + meals.get(i).getCalories();
                     date_idicies.add(i);
                 } else {
-                    if (cur_sum > caloriesPerDay) {
-                        for (Integer index : date_idicies) {
-                            if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(),startTime,endTime)) {
-                                newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), false));
-                            }
-                        }
-                    } else {
-                        for (Integer index : date_idicies) {
-                            if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(),startTime,endTime)) {
-                                newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), true));
-                            }
+                    for (Integer index : date_idicies) {
+                        if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(), startTime, endTime)) {
+                            newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), cur_sum > caloriesPerDay));
                         }
                     }
 
@@ -82,17 +77,9 @@ public class UserMealsUtil {
                 }
             }
 
-            if (cur_sum > caloriesPerDay) {
-                for (Integer index : date_idicies) {
-                    if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(),startTime,endTime)) {
-                        newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), false));
-                    }
-                }
-            } else {
-                for (Integer index : date_idicies){
-                    if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(),startTime,endTime)) {
-                        newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), true));
-                    }
+            for (Integer index : date_idicies) {
+                if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(), startTime, endTime)) {
+                    newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), cur_sum > caloriesPerDay));
                 }
             }
         }
