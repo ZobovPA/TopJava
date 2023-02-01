@@ -39,38 +39,23 @@ public class UserMealsUtil {
     }
 
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
-        meals.sort(Comparator.comparing(UserMeal::getDateTime));
         List<UserMealWithExcess> newList = new ArrayList<>();
 
-        if (meals.size() > 0) {
-            int cur_sum = 0;
-            LocalDate cur_day = meals.get(0).getDateTime().toLocalDate();
-            List<Integer> date_idicies = new ArrayList<>();
+        HashMap<LocalDate, Integer> groupByDays = new HashMap<>();
 
-            for (int i = 0; i < meals.size(); i++) {
-                if (meals.get(i).getDateTime().toLocalDate().equals(cur_day)) {
-                    cur_sum = cur_sum + meals.get(i).getCalories();
-                    date_idicies.add(i);
-                } else {
-                    for (Integer index : date_idicies) {
-                        if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(), startTime, endTime)) {
-                            newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), cur_sum > caloriesPerDay));
-                        }
-                    }
-
-                    cur_day = meals.get(i).getDateTime().toLocalDate();
-                    date_idicies.clear();
-                    date_idicies.add(i);
-                    cur_sum = meals.get(i).getCalories();
-                }
-            }
-
-            for (Integer index : date_idicies) {
-                if (isBetweenHalfOpen(meals.get(index).getDateTime().toLocalTime(), startTime, endTime)) {
-                    newList.add(new UserMealWithExcess(meals.get(index).getDateTime(), meals.get(index).getDescription(), meals.get(index).getCalories(), cur_sum > caloriesPerDay));
-                }
+        for (UserMeal meal : meals) {
+            if (groupByDays.containsKey(meal.getDateTime().toLocalDate())) {
+                groupByDays.replace(meal.getDateTime().toLocalDate(), groupByDays.get(meal.getDateTime().toLocalDate()) + meal.getCalories());
+            } else {
+                groupByDays.put(meal.getDateTime().toLocalDate(), meal.getCalories());
             }
         }
+        for (UserMeal meal : meals) {
+            if (isBetweenHalfOpen(meal.getDateTime().toLocalTime(), startTime, endTime)) {
+                newList.add(new UserMealWithExcess(meal.getDateTime(), meal.getDescription(), meal.getCalories(), groupByDays.get(meal.getDateTime().toLocalDate()) > caloriesPerDay));
+            }
+        }
+
         return newList;
     }
 }
