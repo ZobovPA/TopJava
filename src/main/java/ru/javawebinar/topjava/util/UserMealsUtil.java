@@ -39,23 +39,16 @@ public class UserMealsUtil {
     }
 
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
+        Map<LocalDate, Integer> groupByDays = new HashMap<>();
+        meals.forEach(userMeal ->groupByDays.merge(userMeal.getDateTime().toLocalDate(), userMeal.getCalories(), Integer::sum));
         List<UserMealWithExcess> newList = new ArrayList<>();
 
-        HashMap<LocalDate, Integer> groupByDays = new HashMap<>();
-
-        for (UserMeal meal : meals) {
-            if (groupByDays.containsKey(meal.getDateTime().toLocalDate())) {
-                groupByDays.replace(meal.getDateTime().toLocalDate(), groupByDays.get(meal.getDateTime().toLocalDate()) + meal.getCalories());
-            } else {
-                groupByDays.put(meal.getDateTime().toLocalDate(), meal.getCalories());
-            }
-        }
         for (UserMeal meal : meals) {
             if (isBetweenHalfOpen(meal.getDateTime().toLocalTime(), startTime, endTime)) {
-                newList.add(new UserMealWithExcess(meal.getDateTime(), meal.getDescription(), meal.getCalories(), groupByDays.get(meal.getDateTime().toLocalDate()) > caloriesPerDay));
+                newList.add(new UserMealWithExcess(meal.getDateTime(), meal.getDescription(), meal.getCalories(),
+                        groupByDays.get(meal.getDateTime().toLocalDate()) > caloriesPerDay));
             }
         }
-
         return newList;
     }
 }
